@@ -164,9 +164,8 @@ WHERE location='CA';
 
 --9.  a. Find the name of each company and its average star rating for all companies that have more than 5000 reviews across all locations. 
 --KEY FACTORS: a. DISTINCT company, AVG(star_rating), review_count>5000, across all locations 
---b. How many companies are there with more that 5000 reviews across all locations?
 
-SELECT DISTINCT company AS unique_company,
+SELECT DISTINCT company,
 	ROUND(AVG(star_rating), 2) AS avg_star_rating
 FROM data_analyst_jobs
 WHERE review_count>5000 
@@ -174,13 +173,26 @@ WHERE review_count>5000
 GROUP BY company, review_count 
 ORDER BY avg_star_rating DESC;
 
+--b. How many companies are there with more that 5000 reviews across all locations?
 -- ANSWER: 40 companies
 
---Attempting to add the review_count to the output:
---OBSERVATIONS: without including the reviews themselves, the count is 41.  Including the reviews in the display, the count is 46, due to several duplicate review count values, such as 6790, and 6791. 
+--****************************************************
+
+--*see attempts below to add review_count as a column in the results*
+SELECT company, review_count AS review_count_more_than_5000 
+FROM data_analyst_jobs
+WHERE review_count>5000 
+	AND company IS NOT NULL
+GROUP BY company, review_count 
+ORDER BY review_count;
+
+--ANSWER: 45 companies, there are duplicates due to issues with the data
+
+--OBSERVATIONS: there are duplicate entries for some companies even with count DISTINCT(companies) due to discrepancies in some of the revew counts for certain company locations.  The data varies by +1 to +3.  Could that mean it is due to some kind of INTEGER v. DECIMAL issue?
 --ATTEMPTED SOLUTIONS: DISTINCT ON did not resolve the issue
 
-SELECT DISTINCT company,
+--TEST1: Do the review counts need to be SUMmed?
+SELECT company,
 	ROUND(AVG(star_rating), 2) AS avg_star_rating,
 	SUM(review_count) AS review_count_over_5000_all_locations
 FROM data_analyst_jobs
@@ -189,8 +201,10 @@ WHERE review_count>5000
 GROUP BY company, review_count 
 ORDER BY avg_star_rating DESC;
 
---TROUBLESHOOTING: The issue seems to be with the data in review counts having errors or not being the same across locations.  Since the data seems to vary only +1 to +3, it is not likely due to different review numbers by location that would need to be summed.
 -- ANSWER: 45 companies (incorrect)
+
+-- TEST2: Review data from one of the duplicated countries, by location.  Wells Fargo shows 5 locations, 3 of which have a review count of 29963, and 2 of which have a review count of 29966.
+--TROUBLESHOOTING: We might be able to fix this with an IF statement, but we haven't learned these yet.
 
 SELECT company, 
 	ROUND(AVG(star_rating), 2) AS avg_star_rating,
@@ -201,10 +215,69 @@ WHERE review_count>5000
 	AND company LIKE 'Wells%'
 GROUP BY company, review_count, location;
 
--- TROUBLESHOOTING: Attempting to pull data from Wells Fargo shows 5 locations, 3 of which have a review count of 29963, and 2 of which have a review count of 29966. We might be able to fix this with an IF statement, but we haven't learned these yet.
+--****************
+--verified this issue does not need to be resolved
+-------------------------------------------
 
+--10.	Add the code to order the query in #9 from highest to lowest average star rating. 
+--Which company with more than 5000 reviews across all locations in the dataset has the highest star rating? What is that rating?
 
+SELECT company,
+	ROUND(AVG(star_rating), 2) AS avg_star_rating
+FROM data_analyst_jobs
+WHERE review_count>5000 
+	AND company IS NOT NULL
+GROUP BY company, review_count 
+ORDER BY avg_star_rating DESC;
 
+--ANSWER: American Express, 4.20
 
+-------------------------------------------------
 
+--11.	Find all the job titles that contain the word ‘Analyst’. 
+--How many different job titles are there?
 
+SELECT DISTINCT title
+FROM data_analyst_jobs
+WHERE title ILIKE '%Analyst%';
+
+--ANSWER: 774
+--------------------------------------------
+
+--12.	How many different job titles do not contain either the word ‘Analyst’ or the word ‘Analytics’? 
+-- What word do these positions have in common?
+
+SELECT DISTINCT title
+FROM data_analyst_jobs
+WHERE title NOT ILIKE '%Analytics%'
+	OR title NOT ILIKE '%Analyst%';
+
+-- ANSWER: 4 titles.  "Tableau" is common to all of them.
+
+--------------------------------------------
+
+--**BONUS:**
+--You want to understand which jobs requiring SQL are hard to fill. 
+--Find the number of jobs by industry (domain) that require SQL and have been posted longer than 3 weeks. 
+--Disregard any postings where the domain is NULL. 
+--Order your results so that the domain with the greatest number of `hard to fill` jobs is at the top. 
+--KEY FACTORS, title, industry, days_since_posting>21, IS NULL, GROUP BY industry, ORDER BY DESC, requiring SQL
+
+SELECT domain,
+	COUNT(title) AS count_hard_to_fill
+FROM data_analyst_jobs
+WHERE skill LIKE '%SQL%'
+	AND days_since_posting > 21
+	AND domain IS NOT NULL
+GROUP BY domain
+ORDER BY count_hard_to_fill DESC
+LIMIT 4;
+
+--Which three industries are in the top 4 on this list? 
+-- ANSWER: Technology, Finance, and Healthcare
+
+--How many jobs have been listed for more than 3 weeks for each of the top 4?
+--1) Internet and Software - 62, 
+--2) Banks and Financial Services - 61
+--3) Consulting and Business Services - 57
+--4) Health Care - 52
